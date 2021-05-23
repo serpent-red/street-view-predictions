@@ -2,6 +2,7 @@ import os
 import random
 import csv
 import pandas as pd
+import argparse
 
 ################################################################################
 # So this next import is interesting. Instead of using the official results
@@ -27,6 +28,7 @@ def get_image(lat, lng):
 		'location': f'{lat},{lng}',
 		'key': 'AIzaSyAPMOXydvR5OXd7wv_eEHoaSmnrUChGC2g',
 		'radius': 500,
+		'outdoor': True,
 	}]
 
 	# Create a results object
@@ -69,7 +71,7 @@ def sample_cities(size=1):
 	return selected_cities
 
 
-def main(size=1, adjust=0):
+def main(size=0, adjust=0):
 	"""
 	Single function that retrieves the images for a sample of cities.
 
@@ -95,4 +97,12 @@ def main(size=1, adjust=0):
 
 	return 
 
-main(size=2)
+################################################################################
+# Run the main function with correct arguments
+################################################################################
+parser = argparse.ArgumentParser(description='Download images.')
+parser.add_argument("-s", "--size", help = "Indicates sample size (default 0).", 
+	required = False, default = 0, type=int)
+args = parser.parse_args()
+
+main(size=args.size)
