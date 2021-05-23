@@ -1,6 +1,7 @@
 import os
 import random
 import csv
+import pandas as pd
 
 ################################################################################
 # So this next import is interesting. Instead of using the official results
@@ -56,16 +57,16 @@ def sample_cities(size=1):
 	Retrieves a random selection of cities (rows) from the city_coords.csv.
 	"""
 
+	city_df = pd.read_csv('data/city_coords.csv')
+	big_city_df = city_df.loc[city_df.population >= 50000, :]
 
-	with open('data/city_coords.csv') as file:
-		csvr = csv.reader(file)
-		csvr = list(csvr)
+	num_cities = big_city_df.shape[0]
 
-		num_cities = len(csvr)
-		rand_nums = random.sample(range(0, num_cities), size)
-		selected_cities = [csvr[i] for i in rand_nums]
+	rand_nums = random.sample(range(0, num_cities), size)
+	selected_cities_df = big_city_df.iloc[rand_nums, :]
+	selected_cities = [dict(row) for i, row in selected_cities_df.iterrows()]
 
-		return selected_cities
+	return selected_cities
 
 
 def main(size=1, adjust=0):
@@ -82,15 +83,15 @@ def main(size=1, adjust=0):
 
 	for city in cities:
 		# Adjust coordinates
-		lat, lng = random_coords(city[1], city[2], adjust)
+		lat, lng = random_coords(city['lat'], city['lng'], adjust)
 
 		# Get the image and metadata.
 		try:
 			get_image(lat, lng)
-			print(f"Successfully retrieved image for {city[0], city[4]} at the coordinates: {lat}, {lng}")
+			print(f"Successfully retrieved image for {city['city_ascii'], city['iso3']} at the coordinates: {lat}, {lng}")
 
 		except ValueError:
-			print(f"There was no image for {city[0], city[4]} at the coordinates: {lat}, {lng}")
+			print(f"There was no image for {city['city_ascii'], city['iso3']} at the coordinates: {lat}, {lng}")
 
 	return 
 
