@@ -89,7 +89,7 @@ class results:
     self.metadata_links = [site_metadata + '?' + urlencode(p) for p in params]
     self.metadata = [requests.get(url, stream=True).json() for url in self.metadata_links]
       
-  def download_links(self, dir_path, metadata_file='metadata.json', metadata_status='status', status_ok='OK'):
+  def download_links(self, dir_path, country=None, metadata_status='status', status_ok='OK'):
     """Download Google Street View images from parameter queries if they are available.
     
     Args:
@@ -102,24 +102,31 @@ class results:
       status_ok (str):
         Value from the metadata API response status indicating that an image is available.
     """
+
+    if country is None:
+      country = 'Unclassified'
     metadata = self.metadata
-    if not path.isdir(dir_path):
-      makedirs(dir_path)
+
+    image_country_path = path.join(dir_path, f"images/{country}")
+    meta_country_path = path.join(dir_path, f"metadatas/{country}")
+
+    if not path.isdir(image_country_path):
+      makedirs(image_country_path)
+
+    if not path.isdir(meta_country_path):
+      makedirs(meta_country_path)
 
     # (download) Download images if status from metadata is ok
     for i, url in enumerate(self.links):
       if metadata[i][metadata_status] == status_ok:
         name_coord = f"{metadata[0]['location']['lat']}_{metadata[0]['location']['lng']}"
 
-        if not os.path.exists(path.join(dir_path, f"{name_coord}")):
-          os.makedirs(path.join(dir_path, f"{name_coord}"))
-
-        file_path = path.join(dir_path, f"{name_coord}/image.jpg")
+        file_path = path.join(image_country_path, f"{name_coord}.jpg")
         metadata[i]['_file'] = path.basename(file_path) # add file reference
         helpers.download(url, file_path)
     
         # (metadata) Save metadata with file reference
-        metadata_path = path.join(path.join(dir_path, f"{name_coord}"), metadata_file)
+        metadata_path = path.join(meta_country_path, f'{name_coord}.json')
         with open(metadata_path, 'w') as out_file:
           json.dump(metadata, out_file)
 

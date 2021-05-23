@@ -17,7 +17,7 @@ import argparse
 import api_custom
 ################################################################################
 
-def get_image(lat, lng):
+def get_image(lat, lng, country):
 	"""
 	Retrieves the jpg and metadata for the given latitude and longitude.
 	"""
@@ -35,7 +35,7 @@ def get_image(lat, lng):
 	results = api_custom.results(params)
 
 	# Download images to directory 'data/images'
-	results.download_links(f'data/images')
+	results.download_links(f'data', country=country)
 
 
 def random_coords(lat, lng, minutes=1):
@@ -89,7 +89,7 @@ def main(size=0, adjust=0):
 
 		# Get the image and metadata.
 		try:
-			get_image(lat, lng)
+			get_image(lat, lng, city['iso3'])
 			print(f"Successfully retrieved image for {city['city_ascii'], city['iso3']} at the coordinates: {lat}, {lng}")
 
 		except ValueError:
