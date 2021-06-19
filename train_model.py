@@ -2,18 +2,30 @@ import os
 from os import path, makedirs
 
 # This next line needs to happen BEFORE tf and keras.
-os.environ['CUDA_VISIBLE_DEVICES']='-1'
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras.preprocessing import image
+
 import argparse
+import numpy as np
+
+# config = tf.compat.v1.ConfigProto()
+# config.gpu_options.allow_growth = True
+# session = tf.compat.v1.Session(config=config)
+
+config = tf.compat.v1.ConfigProto()
+config.gpu_options.per_process_gpu_memory_fraction = 0.4
+session = tf.compat.v1.Session(config=config)
 
 ################################################################################
 # Settings
 ################################################################################
 image_size = (640, 640)
-batch_size = 4
+image_size = (160, 160)
+batch_size = 8
 epochs = 30
 
 
@@ -27,6 +39,7 @@ train_ds = tf.keras.preprocessing.image_dataset_from_directory(
     seed=1337,
     image_size=image_size,
     batch_size=batch_size,
+    label_mode="categorical",
 )
 val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     "data/images",
@@ -35,6 +48,7 @@ val_ds = tf.keras.preprocessing.image_dataset_from_directory(
     seed=1337,
     image_size=image_size,
     batch_size=batch_size,
+    label_mode="categorical",
 )
 
 data_augmentation = keras.Sequential(
@@ -102,7 +116,7 @@ def make_model(input_shape, num_classes):
     outputs = layers.Dense(units, activation=activation)(x)
     return keras.Model(inputs, outputs)
 
-model = make_model(input_shape=image_size + (3,), num_classes=2)
+model = make_model(input_shape=image_size + (3,), num_classes=112)
 keras.utils.plot_model(model, show_shapes=True)
 
 
@@ -111,7 +125,8 @@ keras.utils.plot_model(model, show_shapes=True)
 ################################################################################
 parser = argparse.ArgumentParser(description='Train model.')
 parser.add_argument("-n", "--name", help = "Model name.", 
-	required = False, default = "model0")
+    required = False, default = "model0")
+parser.add_argument("-p", "--process", help = "Training or Prediction.", default = "training")
 args = parser.parse_args()
 
 if not path.isdir("model_checkpoints/" + args.name):
@@ -122,9 +137,40 @@ callbacks = [
 ]
 model.compile(
     optimizer=keras.optimizers.Adam(1e-3),
-    loss="binary_crossentropy",
+    loss="categorical_crossentropy",
     metrics=["accuracy"],
 )
-model.fit(
-    train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
-)
+
+if args.process == 'training':
+    model.fit(
+        train_ds, epochs=epochs, callbacks=callbacks, validation_data=val_ds,
+    )
+
+else:
+    model.load_weights('model_checkpoints/model0/save_at_28.h5')
+
+    # # predicting images
+    # img = image.load_img('data/images/ZMB/-12.96906221319054_28.63286521445917.jpg', target_size=image_size)
+    # x = image.img_to_array(img)
+    # x = np.expand_dims(x, axis=0)
+
+    # images = np.vstack([x])
+    # classes = model.predict(images, batch_size=10)
+
+    # predicting multiple images at once
+    img_list = []
+    for f in os.listdir('data/images/USA'):
+        img = image.load_img(f'data/images/USA/{f}', target_size=image_size)
+        y = image.img_to_array(img)
+        y = np.expand_dims(y, axis=0)
+
+        img_list.append(y)
+
+    # pass the list of multiple images np.vstack()
+    images = np.vstack(img_list)
+    classes = model.predict(images, batch_size=10)
+
+    subfolders = [ f.path for f in os.scandir('data/images/') if f.is_dir() ]
+
+    for c in classes:
+        print(os.path.basename(subfolders[c.argmax(axis=0)]))
